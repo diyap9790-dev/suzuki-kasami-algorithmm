@@ -9,7 +9,7 @@ page — this is the unique/attractive centerpiece of the project. Pure SVG
 import math
 
 # Node colors
-COLOR_IDLE = "#3a3f58"
+COLOR_IDLE = "#5a54b4"
 COLOR_HOLDER_IDLE = "#f5b544"     # gold = holding token, not executing
 COLOR_IN_CS = "#39d98a"           # green = actively inside critical section
 COLOR_QUEUED = "#ff7a59"          # orange outline = waiting in queue
@@ -47,12 +47,10 @@ def build_ring_svg(sim) -> str:
         x, y = positions[i]
         is_holder = (i == sim.current_holder)
         is_in_cs = is_holder and sim.in_cs
-        # A process is shown as "waiting" the moment it has an outstanding
-        # request (RN[i] > LN[i]) and isn't the holder — this reflects intent
-        # immediately, even on the step before the core algorithm formally
-        # adds it to token_queue (which happens lazily, on the next grant
-        # check). Purely a visual cue; does not touch the algorithm itself.
-        has_pending_request = (not is_holder) and (sim.RN[i] > sim.token_LN[i])
+        # A process is shown as "waiting" the moment it has broadcast a
+        # request and is not the holder - even before the token holder adds
+        # it to token_queue (that happens when the holder leaves the CS).
+        has_pending_request = sim.is_waiting(i)
         is_queued = (i in sim.token_queue) or has_pending_request
 
         if is_in_cs:
@@ -71,7 +69,7 @@ def build_ring_svg(sim) -> str:
         nodes.append(
             f'<g class="{css_class}">'
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{NODE_R}" fill="{fill}" '
-            f'stroke="{COLOR_QUEUED if is_queued else "#1b1e2e"}" '
+            f'stroke="{COLOR_QUEUED if is_queued else "#2c2672"}" '
             f'stroke-width="{4 if is_queued else 2}" '
             f'stroke-dasharray="{"6,5" if is_queued else "0"}" />'
             f'<text x="{x:.1f}" y="{y+6:.1f}" text-anchor="middle" '
@@ -83,7 +81,7 @@ def build_ring_svg(sim) -> str:
                f'fill="{COLOR_QUEUED}" />'
                f'<text x="{x+NODE_R-10:.1f}" y="{y-NODE_R+15:.1f}" '
                f'text-anchor="middle" font-size="13" font-weight="700" '
-               f'fill="#1b1e2e">{(sim.token_queue.index(i)+1) if i in sim.token_queue else "~"}</text>'
+               f'fill="#2c2672">{(sim.token_queue.index(i)+1) if i in sim.token_queue else "~"}</text>'
                if is_queued else "")
             + "</g>"
         )
@@ -95,7 +93,7 @@ def build_ring_svg(sim) -> str:
     display:flex; justify-content:center; padding: 8px 0 4px 0;
 }}
 .ring-edge {{
-    stroke: #4a5072; stroke-width: 2; stroke-dasharray: 4,4;
+    stroke: #c9c5ff; stroke-width: 2; stroke-dasharray: 4,4;
 }}
 .node circle {{ transition: all 0.4s ease; }}
 .glow-token circle:first-child {{
